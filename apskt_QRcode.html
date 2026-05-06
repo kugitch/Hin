@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>九龍塘宣道小學校名 QR Code 工具 v8</title>
+  <title>九龍塘宣道小學校名 QR Code 工具 </title>
   <style>
     :root { --bg:#f5f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --border:#d1d5db; --primary:#111827; --danger:#b91c1c; --ok:#166534; --warn:#92400e; --soft:#f8fafc; }
     * { box-sizing: border-box; }
@@ -46,7 +46,7 @@
 
       <label for="contentInput">網址／文字</label>
       <div class="grid">
-        <div><input id="contentInput" type="text" placeholder="例如：https://apskt.edu.hk 或其他網頁網址" value="https://apskt.edu.hk"></div>
+        <div><input id="contentInput" type="text" placeholder="例如：https://www.apskt.edu.hk 或其他網頁網址" value="https://www.apskt.edu.hk"></div>
         <div>
           <label for="sizeSelect">輸出尺寸</label>
           <select id="sizeSelect">
@@ -584,7 +584,7 @@
       document.body.appendChild(link); link.click(); document.body.removeChild(link);
     }
     function clearAll() {
-      contentInput.value = 'https://apskt.edu.hk';
+      contentInput.value = 'https://www.apskt.edu.hk';
       logoCheck.checked = true;
       frameCheck.checked = false;
       sizeSelect.value = '1500';
