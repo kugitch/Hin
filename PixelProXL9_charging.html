@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel 9 Pro XL 智能充電預測器</title>
+    <!-- 引入 Chart.js 作為數據視覺化庫 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+        }
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #34495e;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        .result-box {
+            background-color: #e8f4fd;
+            border-left: 5px solid #3498db;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            text-align: center;
+            font-size: 1.2em;
+        }
+        .result-time {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2980b9;
+        }
+        canvas {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>⚡ Pixel 9 Pro XL 充電計算器 (0% - 80%)</h2>
+    
+    <div class="result-box">
+        從 <span id="startValDisp" style="font-weight: bold;">30</span>% 充到 <span id="endValDisp" style="font-weight: bold;">77</span>%<br>
+        預計需要：<span class="result-time" id="timeDisp">28</span> 分鐘
+    </div>
+
+    <div class="control-group">
+        <label><span>開始電量 (%)</span> <span id="startLabel">30%</span></label>
+        <input type="range" id="startSlider" min="0" max="79" value="30">
+    </div>
+
+    <div class="control-group">
+        <label><span>結束電量 (%)</span> <span id="endLabel">77%</span></label>
+        <input type="range" id="endSlider" min="1" max="80" value="77">
+    </div>
+
+    <canvas id="chargingChart"></canvas>
+</div>
+
+<script>
+    // 物理模型參數設定
+    const BATTERY_WH = 19.217; // 4940mAh * 3.89V
+    const ENERGY_PER_PCT = BATTERY_WH / 100;
+    const EFFICIENCY = 0.82; // 根據實測 28.5 分鐘推導出的 82% 綜合轉換效率
+
+    // 功率曲線函數 (根據你的實測數據擬合)
+    function getPower(p) {
+        if (p < 50) return 36.4;
+        if (p < 56) return 36.4 - ((36.4 - 26.0) / 6) * (p - 50);
+        if (p < 72) return 26.0 - ((26.0 - 12.5) / 16) * (p - 56);
+        if (p < 77) return 12.0;
+        return 9.0; // 77-80% 涓流降溫波段
+    }
+
+    // 預先計算累積時間陣列 (從 0% 到 80%)
+    let cumulativeTimes = [0];
+    let chartLabels = [];
+    let baseCurveData = [];
+
+    for (let p = 0; p <= 80; p++) {
+        chartLabels.push(p + '%');
+        baseCurveData.push(getPower(p));
+        
+        if (p < 80) {
+            let p_mid = p + 0.5;
+            let power = getPower(p_mid);
+            // 時間 = 能量 / 功率 / 效率 * 60 (轉換為分鐘)
+            let time_for_pct = (ENERGY_PER_PCT / power) / EFFICIENCY * 60;
+            cumulativeTimes.push(cumulativeTimes[p] + time_for_pct);
+        }
+    }
+
+    // UI 元素綁定
+    const startSlider = document.getElementById('startSlider');
+    const endSlider = document.getElementById('endSlider');
+    const startLabel = document.getElementById('startLabel');
+    const endLabel = document.getElementById('endLabel');
+    const startValDisp = document.getElementById('startValDisp');
+    const endValDisp = document.getElementById('endValDisp');
+    const timeDisp = document.getElementById('timeDisp');
+
+    // 初始化 Chart.js 實例
+    const ctx = document.getElementById('chargingChart').getContext('2d');
+    const chargingChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartLabels,
+            datasets: [
+                {
+                    label: '基礎功率曲線 (W)',
+                    data: baseCurveData,
+                    borderColor: '#bdc3c7',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0.1
+                },
+                {
+                    label: '計算區間',
+                    data: [], // 動態更新
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    fill: true,
+                    tension: 0.1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: '充電功率 (W)' },
+                    max: 40
+                },
+                x: {
+                    title: { display: true, text: '電池電量 (%)' },
+                    ticks: { maxTicksLimit: 9 }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index',
+            }
+        }
+    });
+
+    // 核心更新邏輯
+    function updateCalculator() {
+        let start = parseInt(startSlider.value);
+        let end = parseInt(endSlider.value);
+
+        // 防呆設計：確保開始 % 小於結束 %
+        if (start >= end) {
+            if (this.id === 'startSlider') {
+                endSlider.value = start + 1;
+                end = start + 1;
+            } else {
+                startSlider.value = end - 1;
+                start = end - 1;
+            }
+        }
+
+        // 更新文字顯示
+        startLabel.textContent = start + '%';
+        endLabel.textContent = end + '%';
+        startValDisp.textContent = start;
+        endValDisp.textContent = end;
+
+        // 計算時間差並四捨五入
+        let calculatedTime = cumulativeTimes[end] - cumulativeTimes[start];
+        timeDisp.textContent = Math.round(calculatedTime);
+
+        // 更新圖表的反白選取區間
+        let selectedData = [];
+        for (let i = 0; i <= 80; i++) {
+            if (i >= start && i <= end) {
+                selectedData.push(baseCurveData[i]);
+            } else {
+                selectedData.push(null);
+            }
+        }
+        chargingChart.data.datasets[1].data = selectedData;
+        chargingChart.update();
+    }
+
+    // 監聽 Slider 滑動事件
+    startSlider.addEventListener('input', updateCalculator);
+    endSlider.addEventListener('input', updateCalculator);
+
+    // 初始載入更新
+    updateCalculator();
+</script>
+
+</body>
+</html>
