@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Countdown Watch</title>
+  <style>
+    :root {
+      --blue: #0054bd;
+      --blue-dark: #003d8c;
+      --green: #1bd10f;
+      --red: #e00000;
+      --ink: #111;
+      --muted: #777;
+      --line: #2b2b2b;
+      --track: #d7d7d7;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at center, #ffffff 0%, #f5f5f5 48%, #e8e8e8 100%);
+      color: var(--ink);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 28px;
+    }
+
+    .watch-page {
+      width: min(1180px, 100%);
+    }
+
+    .top-banner {
+      width: 100%;
+      background: linear-gradient(90deg, var(--blue), #0068df);
+      color: white;
+      text-align: center;
+      font-size: clamp(17px, 2.35vw, 30px);
+      letter-spacing: 0.05em;
+      padding: 16px 18px;
+      margin-bottom: 28px;
+      box-shadow: 0 5px 16px rgba(0, 0, 0, 0.12);
+      user-select: none;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .timer-box {
+      background: rgba(255, 255, 255, 0.86);
+      border: 7px solid var(--line);
+      border-radius: 34px;
+      padding: 24px 22px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 8px 26px rgba(0,0,0,0.10);
+    }
+
+    .time-display {
+      font-size: clamp(60px, 13vw, 178px);
+      line-height: 0.98;
+      text-align: center;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .setup-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(95px, 1fr)) auto;
+      gap: 14px;
+      margin: 26px 0;
+      align-items: end;
+    }
+
+    .setup-row.is-hidden {
+      display: none;
+    }
+
+    label {
+      display: grid;
+      gap: 7px;
+      font-size: 17px;
+      color: #333;
+      font-weight: 700;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      font-size: 26px;
+      padding: 13px 14px;
+      border: 4px solid #2d2d2d;
+      border-radius: 12px;
+      text-align: center;
+      font-weight: 700;
+      background: white;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .set-button {
+      min-height: 63px;
+      border: 5px solid #333;
+      border-radius: 14px;
+      background: var(--blue);
+      color: white;
+      font-size: 24px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0 24px;
+      box-shadow: 0 5px 0 var(--blue-dark);
+    }
+
+    .main-area {
+      display: grid;
+      grid-template-columns: 1fr 330px;
+      gap: 30px;
+      align-items: center;
+      margin-top: 26px;
+    }
+
+    .big-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 26px;
+    }
+
+    .control-button {
+      min-height: 132px;
+      border: 8px solid #262626;
+      border-radius: 22px;
+      color: #000;
+      font-size: clamp(38px, 5.2vw, 70px);
+      cursor: pointer;
+      box-shadow: inset 0 2px 0 rgba(255,255,255,0.45), 0 7px 0 rgba(0,0,0,0.22);
+    }
+
+    .start-pause {
+      background: linear-gradient(#2bea20, var(--green));
+    }
+
+    .clear {
+      background: linear-gradient(#ff1616, var(--red));
+    }
+
+    .circle-watch {
+      width: 100%;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      position: relative;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+    }
+
+    .circle-watch svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .circle-track,
+    .circle-progress {
+      fill: none;
+      stroke-width: 18;
+      stroke-linecap: round;
+    }
+
+    .circle-track {
+      stroke: var(--track);
+    }
+
+    .circle-progress {
+      stroke: var(--blue);
+      transition: stroke-dashoffset 0.18s linear;
+    }
+
+    .circle-label {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .circle-time {
+      font-size: 40px;
+      font-weight: 800;
+    }
+
+    .circle-caption {
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .bottom-bar {
+      width: 100%;
+      height: 71px;
+      background: linear-gradient(90deg, var(--blue), var(--blue-dark));
+      margin-top: 26px;
+    }
+
+    @media (max-width: 860px) {
+      body {
+        padding: 16px;
+      }
+
+      .top-banner {
+        white-space: normal;
+        line-height: 1.25;
+      }
+
+      .setup-row,
+      .main-area,
+      .big-buttons {
+        grid-template-columns: 1fr;
+      }
+
+      .circle-watch {
+        width: min(330px, 100%);
+        margin: 0 auto;
+      }
+
+      .control-button {
+        min-height: 100px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="watch-page">
+    <div class="top-banner"></div>
+
+    <section class="timer-box" aria-label="Countdown timer">
+      <div class="time-display" id="mainTime" aria-live="polite">00:00:00</div>
+    </section>
+
+    <section class="setup-row" id="setupRow" aria-label="Set countdown duration">
+      <label>
+        Hours
+        <input id="hours" type="number" min="0" max="3" step="1" value="0" inputmode="numeric" />
+      </label>
+
+      <label>
+        Minutes
+        <input id="minutes" type="number" min="0" max="59" step="1" value="15" inputmode="numeric" />
+      </label>
+
+      <label>
+        Seconds
+        <input id="seconds" type="number" min="0" max="59" step="1" value="0" inputmode="numeric" />
+      </label>
+
+      <button class="set-button" id="setButton" type="button">Set</button>
+    </section>
+
+    <section class="main-area">
+      <div class="big-buttons">
+        <button class="control-button start-pause" id="startPauseButton" type="button">Start</button>
+        <button class="control-button clear" id="clearButton" type="button">Clear</button>
+      </div>
+
+      <div class="circle-watch" aria-label="Circular countdown watch">
+        <svg viewBox="0 0 260 260" role="img" aria-labelledby="circleTitle">
+          <title id="circleTitle">Circle countdown progress</title>
+          <circle class="circle-track" cx="130" cy="130" r="105"></circle>
+          <circle class="circle-progress" id="progressCircle" cx="130" cy="130" r="105"></circle>
+        </svg>
+
+        <div class="circle-label">
+          <div class="circle-time" id="circleTime">00:00:00</div>
+          <div class="circle-caption" id="circleCaption">Ready</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="bottom-bar" aria-hidden="true"></div>
+  </main>
+
+  <script>
+    const MAX_SECONDS = 3 * 60 * 60;
+    const radius = 105;
+    const circumference = 2 * Math.PI * radius;
+
+    const setupRow = document.getElementById('setupRow');
+    const hoursInput = document.getElementById('hours');
+    const minutesInput = document.getElementById('minutes');
+    const secondsInput = document.getElementById('seconds');
+    const setButton = document.getElementById('setButton');
+    const startPauseButton = document.getElementById('startPauseButton');
+    const clearButton = document.getElementById('clearButton');
+    const mainTime = document.getElementById('mainTime');
+    const circleTime = document.getElementById('circleTime');
+    const circleCaption = document.getElementById('circleCaption');
+    const progressCircle = document.getElementById('progressCircle');
+
+    let totalMs = 0;
+    let remainingMs = 0;
+    let endTime = 0;
+    let timerId = null;
+    let running = false;
+
+    progressCircle.style.strokeDasharray = String(circumference);
+    progressCircle.style.strokeDashoffset = String(circumference);
+
+    function hideSetup(shouldHide) {
+      setupRow.classList.toggle('is-hidden', shouldHide);
+      setupRow.setAttribute('aria-hidden', String(shouldHide));
+    }
+
+    function clampWholeNumber(value, min, max) {
+      const number = Number.parseInt(value, 10);
+      if (Number.isNaN(number)) return min;
+      return Math.min(Math.max(number, min), max);
+    }
+
+    function formatTime(totalSeconds) {
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      return [hours, minutes, seconds]
+        .map(unit => String(unit).padStart(2, '0'))
+        .join(':');
+    }
+
+    function writeInputs(totalSeconds) {
+      hoursInput.value = Math.floor(totalSeconds / 3600);
+      minutesInput.value = Math.floor((totalSeconds % 3600) / 60);
+      secondsInput.value = totalSeconds % 60;
+    }
+
+    function readInputs() {
+      const hours = clampWholeNumber(hoursInput.value, 0, 3);
+      const minutes = clampWholeNumber(minutesInput.value, 0, 59);
+      const seconds = clampWholeNumber(secondsInput.value, 0, 59);
+
+      let totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
+
+      if (totalSeconds > MAX_SECONDS) {
+        totalSeconds = MAX_SECONDS;
+        circleCaption.textContent = 'Max 03:00:00';
+      }
+
+      writeInputs(totalSeconds);
+      return totalSeconds;
+    }
+
+    function updateScreen() {
+      const visibleSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+      const formatted = formatTime(visibleSeconds);
+
+      mainTime.textContent = formatted;
+      circleTime.textContent = formatted;
+
+      const fractionRemaining = totalMs > 0 ? remainingMs / totalMs : 0;
+      const dashOffset = circumference * (1 - fractionRemaining);
+      progressCircle.style.strokeDashoffset = String(dashOffset);
+    }
+
+    function setCountdown() {
+      pauseTimer(false);
+      hideSetup(false);
+
+      const totalSeconds = readInputs();
+
+      if (totalSeconds < 1) {
+        totalMs = 0;
+        remainingMs = 0;
+        updateScreen();
+        circleCaption.textContent = 'Ready';
+        startPauseButton.textContent = 'Start';
+        return false;
+      }
+
+      totalMs = totalSeconds * 1000;
+      remainingMs = totalMs;
+
+      updateScreen();
+      circleCaption.textContent = 'Ready';
+      startPauseButton.textContent = 'Start';
+
+      return true;
+    }
+
+    function startTimer() {
+      if (remainingMs <= 0) {
+        if (!setCountdown()) return;
+      }
+
+      hideSetup(true);
+      running = true;
+      endTime = Date.now() + remainingMs;
+
+      startPauseButton.textContent = 'Pause';
+      circleCaption.textContent = 'Running';
+
+      timerId = window.setInterval(() => {
+        remainingMs = Math.max(0, endTime - Date.now());
+        updateScreen();
+
+        if (remainingMs <= 0) {
+          finishTimer();
+        }
+      }, 100);
+    }
+
+    function pauseTimer(showMessage = true) {
+      if (timerId !== null) {
+        window.clearInterval(timerId);
+        timerId = null;
+      }
+
+      if (running) {
+        remainingMs = Math.max(0, endTime - Date.now());
+      }
+
+      running = false;
+      updateScreen();
+
+      if (showMessage && remainingMs > 0) {
+        startPauseButton.textContent = 'Resume';
+        circleCaption.textContent = 'Paused';
+      }
+    }
+
+    function finishTimer() {
+      pauseTimer(false);
+
+      remainingMs = 0;
+      updateScreen();
+
+      hideSetup(false);
+      startPauseButton.textContent = 'Start';
+      circleCaption.textContent = 'Done';
+    }
+
+    function clearTimer() {
+      pauseTimer(false);
+
+      totalMs = 0;
+      remainingMs = 0;
+
+      hideSetup(false);
+      writeInputs(0);
+      updateScreen();
+
+      startPauseButton.textContent = 'Start';
+      circleCaption.textContent = 'Ready';
+    }
+
+    setButton.addEventListener('click', setCountdown);
+
+    startPauseButton.addEventListener('click', () => {
+      if (running) {
+        pauseTimer(true);
+      } else {
+        startTimer();
+      }
+    });
+
+    clearButton.addEventListener('click', clearTimer);
+
+    [hoursInput, minutesInput, secondsInput].forEach(input => {
+      input.addEventListener('change', () => {
+        const totalSeconds = readInputs();
+
+        if (!running) {
+          totalMs = totalSeconds * 1000;
+          remainingMs = totalMs;
+
+          updateScreen();
+          startPauseButton.textContent = 'Start';
+          circleCaption.textContent = 'Ready';
+        }
+      });
+    });
+
+    setCountdown();
+  </script>
+</body>
+</html>
